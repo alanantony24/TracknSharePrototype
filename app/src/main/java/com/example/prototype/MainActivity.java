@@ -36,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     int currentSteps;
     boolean running = false;
     int calories = 0;
-    DecimalFormat decimalFormat = new DecimalFormat("#.##");
 
     //MainActivity contains stepcounter, timer
     @Override
@@ -94,8 +93,6 @@ public class MainActivity extends AppCompatActivity {
                 sendCommandToService(Constants.ACTION_STOP_SERVICE);
                 Toast.makeText(MainActivity.this, "Stopped Run!", Toast.LENGTH_SHORT).show();
                 TextView caloriesTv = findViewById(R.id.calories);
-                calories = (int) (currentSteps * 0.045);
-                caloriesTv.setText(""+totalSteps * calories + "kcal");
                 getDistanceAndSpeed();
             }
         });
@@ -186,7 +183,10 @@ public class MainActivity extends AppCompatActivity {
         Log.e("DISTANCE", ""+distanceInMetres);
         TextView distance = findViewById(R.id.distance);
         TextView speed = findViewById(R.id.speed);
-        distance.setText(decimalFormat.format(distanceInMetres) + "m");
-        speed.setText(decimalFormat.format(speedInMs) + "m/s");
+        TextView caloriesTv = findViewById(R.id.calories);
+        calories = (int) (currentSteps * 0.045);
+        caloriesTv.setText(""+totalSteps * calories + "kcal");
+        distance.setText(String.format("%.2f", distanceInMetres) + "m");
+        speed.setText(String.format("%.2f", speedInMs) + "m/s");
     }
 }

@@ -57,7 +57,6 @@ public class TrackingService extends Service{
                 Log.e("SERVICE", "STARTED SERVICE");
             }
             else if(action.equals(Constants.ACTION_STOP_SERVICE)){
-                getDistanceAndSpeed();
                 client.removeLocationUpdates(locationCallback);
                 stopForeground(true);
                 TrackingService.this.stopSelf();
@@ -119,21 +118,5 @@ public class TrackingService extends Service{
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         client.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
         dbHandler.delelteAll();
-    }
-    public void getDistanceAndSpeed(){
-        ArrayList<LatLng> locations = dbHandler.getAllPoints();
-        LatLng latLng1 = locations.get(0);
-        LatLng latLng2 = locations.get(locations.size() - 1);
-
-        Location startPoint = new Location("locationA");
-        startPoint.setLatitude(latLng1.latitude);
-        startPoint.setLongitude(latLng1.longitude);
-
-        Location endPoint = new Location("locationB");
-        startPoint.setLatitude(latLng2.latitude);
-        startPoint.setLongitude(latLng2.longitude);
-
-        double distanceInMetres = startPoint.distanceTo(endPoint);
-        Log.e("DISTANCE", ""+distanceInMetres);
     }
 }
