@@ -41,22 +41,34 @@ public class TrackingService extends Service{
 
     //Variables
     boolean running = false;
-    private int totalSteps = 0;
-    private int previousTotalSteps = 0;
-    DBHandler dbHandler = new DBHandler(TrackingService.this);
     FusedLocationProviderClient client;
+    LocationCallback locationCallback = new LocationCallback() {
+        @Override
+        public void onLocationResult(@NonNull LocationResult locationResult) {
+            super.onLocationResult(locationResult);
+            List<Location> locationList = locationResult.getLocations();
+            for(int i = 0; i < locationList.size(); i++){
+                Location location = locationList.get(i);
+                /*db.addRun(location.getLatitude(),location.getLongitude());*/
+                Log.d("LOCATIONSERVICE", location.getLatitude() + ", " + location.getLongitude());
+            }
+        }
+    };
+
     //Services to run in background to be implemented here....This includes distance, speed, getting location in background.
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent != null){
             String action = intent.getAction();
             if(action.equals(Constants.ACTION_START_OR_RESUME_SERVICE)){
                 running = true;
-                startLocationTracking();
+                getBackgroundLocation();
                 startForegroundService();
                 Log.e("SERVICE", "STARTED SERVICE");
             }
             else if(action.equals(Constants.ACTION_STOP_SERVICE)){
+                running = false;
                 client.removeLocationUpdates(locationCallback);
                 stopForeground(true);
                 TrackingService.this.stopSelf();
@@ -71,24 +83,33 @@ public class TrackingService extends Service{
     public IBinder onBind(Intent intent) {
         return null;
     }
-    //Timer method
-    LocationCallback locationCallback = new LocationCallback() {
-        @Override
-        public void onLocationResult(@NonNull LocationResult locationResult) {
-            super.onLocationResult(locationResult);
-            List<Location> locationList = locationResult.getLocations();
-            for(int i = 0; i < locationList.size(); i++){
-                Location location = locationList.get(i);
-                dbHandler.addUser(location.getLatitude(),location.getLongitude());
-                Log.d("LOCATIONSERVICE", location.getLatitude() + ", " + location.getLongitude());
-            }
-        }
-    };
+
+    private PendingIntent getMainActivityPendingIntent(){
+        Intent intent = new Intent(TrackingService.this, MainActivity.class);
+        intent.setAction(Constants.ACTION_SHOW_TRACKING_FRAGMENT);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+        return pendingIntent;
+    }
+
+    @SuppressLint("MissingPermission")
+    public void getBackgroundLocation(){
+        client = new FusedLocationProviderClient(this);
+        LocationRequest locationRequest = new LocationRequest();
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(2000);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        client.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+    }
+
+    //Create notification to show that the app is running in the background.
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void createNotificationChannel(NotificationManager notificationManager){
         NotificationChannel notificationChannel = new NotificationChannel(Constants.NOTIFICATION_CHANNEL_ID, Constants.NOTIFICATION_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
         notificationManager.createNotificationChannel(notificationChannel);
     }
+
+    //This is to start the foregroundService with the notification.
     public void startForegroundService(){
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
@@ -102,21 +123,5 @@ public class TrackingService extends Service{
                     .setContentIntent(getMainActivityPendingIntent());
             startForeground(Constants.NOTIFICATION_ID, builder.build());
         }
-    }
-    private PendingIntent getMainActivityPendingIntent(){
-        Intent intent = new Intent(TrackingService.this, MainActivity.class);
-        intent.setAction(Constants.ACTION_SHOW_TRACKING_FRAGMENT);
-        PendingIntent pendingIntent = PendingIntent.getActivity(TrackingService.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        return pendingIntent;
-    }
-    @SuppressLint("MissingPermission")
-    public void startLocationTracking(){
-        client = new FusedLocationProviderClient(this);
-        LocationRequest locationRequest = new LocationRequest();
-        locationRequest.setInterval(5000);
-        locationRequest.setFastestInterval(2000);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        client.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
-        dbHandler.delelteAll();
     }
 }
